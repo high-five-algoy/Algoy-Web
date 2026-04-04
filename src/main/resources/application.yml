@@ -42,6 +42,7 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: false
 
+
   security:
     oauth2:
       client:
@@ -53,3 +54,16 @@ spring:
             scope:
               - email
               - profile
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+recommendation:
+  cache:
+    ttl-hours: ${RECOMMENDATION_CACHE_TTL_HOURS:12}
+  refresh-lock:
+    ttl-minutes: ${RECOMMENDATION_REFRESH_LOCK_TTL_MINUTES:2}
+  seen:
+    ttl-days: ${RECOMMENDATION_SEEN_TTL_DAYS:30}

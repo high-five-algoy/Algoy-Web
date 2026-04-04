@@ -1,4 +1,4 @@
-package com.example.algoyweb.service.user;
+﻿package com.example.algoyweb.service.user;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -8,6 +8,8 @@ import com.example.algoyweb.exception.errorcode.UserErrorCode;
 import com.example.algoyweb.model.entity.allen.SolvedACResponseEntity;
 import com.example.algoyweb.model.entity.user.Role;
 import com.example.algoyweb.repository.allen.SolvedACResponseRepository;
+import com.example.algoyweb.service.allen.RecommendationRedisService;
+import com.example.algoyweb.service.allen.RecommendationRefreshService;
 import com.example.algoyweb.util.ConvertUtils;
 
 import jakarta.servlet.http.Cookie;
@@ -38,14 +40,20 @@ import org.springframework.web.client.RestTemplate;
 public class UserService implements UserDetailsService {
 	private final SolvedACResponseRepository solvedACResponseRepository;
 	private final UserRepository userRepository;
-	private final PasswordEncoder passwordEncoder; // Spring Security의 PasswordEncoder 사용
+	private final PasswordEncoder passwordEncoder; // Spring Security??PasswordEncoder ?ъ슜
+	private final RecommendationRedisService recommendationRedisService;
+	private final RecommendationRefreshService recommendationRefreshService;
+
 
 	@Autowired
 	public UserService(SolvedACResponseRepository solvedACResponseRepository, UserRepository userRepository,
-		PasswordEncoder passwordEncoder) {
+		PasswordEncoder passwordEncoder, RecommendationRedisService recommendationRedisService,
+					   RecommendationRefreshService recommendationRefreshService) {
 		this.solvedACResponseRepository = solvedACResponseRepository;
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.recommendationRedisService = recommendationRedisService;
+		this.recommendationRefreshService = recommendationRefreshService;
 	}
 
 	/**
@@ -358,22 +366,55 @@ public class UserService implements UserDetailsService {
 	 *
 	 * @author 조아라
 	 * @return 추천 문제 String 반환
-	 * 리스트에 저장된 문제들 중 랜덤으로 한 문제를 화면에 출력
+	 * 화면에 보여줄 다음 추천 문제를 가져온다
 	 */
-	public String getRandomProblemsByUsername(String userEmail) {
-		// SolvedACResponseEntity에서 사용자 문제 리스트 가져오기
-		Optional<SolvedACResponseEntity> optionalResponseEntity = solvedACResponseRepository.findByUserEmail(userEmail);
+//	public String getRandomProblemsByUsername(String userEmail) {
+//		Optional<String> nextProblem = recommendationRedisService.popNextRecommendation(userEmail);
+//
+//		// redis에서 pop 한 문제가 있으면 1. seen 데이터 저장 2. refresh 실행 3. 화면 데이터로 반환
+//		//redis ?먯뿉 pop ??臾몄젣媛 ?덈떎硫? 1. seen???곗씠?????2. refresh ?섍린 3. ?붾㈃???곗씠??show
+//		if (nextProblem.isPresent()) {
+//			String selectedProblem = nextProblem.get();
+//			recommendationRedisService.markAsSeen(userEmail, recommendationRedisService.extractProblemNo(selectedProblem));
+//			recommendationRefreshService.refreshIfNeeded(userEmail);
+//			return selectedProblem;
+//		}
+//
+//		// redis에 데이터가 없으면 1. refresh로 다시 채우기 2. redis에서 pop 3. seen 저장 4. 홈 화면에 표시
+//		//redis ?먯뿉 ?곗씠?곌? ?놁쑝硫?1. refresh ?댁꽌 ??梨꾩슦湲?2. ?먯뿉??pop 3. seen ???4. ?곗씠??home??show
+//		boolean refreshed = recommendationRefreshService.refreshIfNeeded(userEmail);
+//		if (refreshed) {
+//			return recommendationRedisService.popNextRecommendation(userEmail)
+//					.map(problem -> {
+//						recommendationRedisService.markAsSeen(userEmail, recommendationRedisService.extractProblemNo(problem));
+//						return problem;
+//					})
+//					.orElse("추천 문제를 준비 중입니다.");
+//		}
+//
+//		return "추천 문제를 준비 중입니다.";
+//	}
 
-		if (optionalResponseEntity.isPresent()) {
-			SolvedACResponseEntity responseEntity = optionalResponseEntity.get();
-			List<String> recommendedProblems = responseEntity.getResponse();
-			String problemToShow = getRandomProblem(recommendedProblems);
-			return problemToShow;
-		} else {
-			return null;
+	public String getRandomProblemsByUsername(String userEmail) {
+		Optional<String> nextProblem = recommendationRedisService.popNextRecommendation(userEmail);
+
+		if (nextProblem.isPresent()) {
+			String selectedProblem = nextProblem.get();
+			// 홈 화면에서는 큐 소비와 refresh만 담당한다.
+			// seen 저장은 이미 API 응답 처리 단계에서 끝났다고 가정한다.
+			recommendationRefreshService.refreshIfNeeded(userEmail);
+			return selectedProblem;
 		}
 
+		boolean refreshed = recommendationRefreshService.refreshIfNeeded(userEmail);
+		if (refreshed) {
+			return recommendationRedisService.popNextRecommendation(userEmail)
+					.orElse("추천 문제를 준비 중입니다.");
+		}
+
+		return "추천 문제를 준비 중입니다.";
 	}
+
 
 	/**
 	 * home 화면에 출력할 문제 리스트에서 추출
@@ -384,7 +425,7 @@ public class UserService implements UserDetailsService {
 	 */
 	private String getRandomProblem(List<String> problems) {
 		if (problems == null || problems.isEmpty()) {
-			return "추천 문제를 가져올 수 없습니다."; // 문제가 없을 때의 처리
+			return "추천 문제를 가져올 수 없습니다.";  // 문제가 없을 때의 처리
 		}
 		Random random = new Random();
 		return problems.get(random.nextInt(problems.size()));
@@ -409,3 +450,4 @@ public class UserService implements UserDetailsService {
 		}
 	}
 }
+
