@@ -1,7 +1,6 @@
 package com.example.algoyweb.config;
 
 import com.example.algoyweb.util.user.UserAuthenticationSuccessHandler;
-import com.example.algoyweb.service.allen.AllenService;
 import com.example.algoyweb.service.user.UserService;
 
 import org.springframework.context.annotation.Bean;
@@ -28,13 +27,10 @@ public class SecurityConfig { // 보안 설정 담당 클래스
 	@Lazy
 	private final UserService userService;
 
-	@Lazy
-	private final AllenService allenService;
 
-	public SecurityConfig(CustomOAuth2UserService customOAuth2UserService, @Lazy UserService userService, @Lazy AllenService allenService) {
+	public SecurityConfig(CustomOAuth2UserService customOAuth2UserService, @Lazy UserService userService) {
 		this.customOAuth2UserService = customOAuth2UserService;
 		this.userService = userService;
-		this.allenService = allenService;
 	}
 
 	@Bean
@@ -59,6 +55,7 @@ public class SecurityConfig { // 보안 설정 담당 클래스
 				.requestMatchers("/algoy/check-email-duplicate").permitAll()
 				.requestMatchers("/algoy/check-nickname-duplicate").permitAll()
 				.requestMatchers("/algoy/allen/**").permitAll()
+					.requestMatchers("/algoy/openai/**").permitAll()
 				.requestMatchers("/css/**").permitAll()
 				.requestMatchers("/img/**").permitAll()
 				.requestMatchers("/js/**").permitAll()
@@ -95,6 +92,6 @@ public class SecurityConfig { // 보안 설정 담당 클래스
 
 	@Bean
 	public UserAuthenticationSuccessHandler userAuthenticationSuccessHandler() {
-		return new UserAuthenticationSuccessHandler(userService, allenService);
+		return new UserAuthenticationSuccessHandler(userService);
 	}
 }

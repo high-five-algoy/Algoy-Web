@@ -5,6 +5,7 @@ import com.example.algoyweb.model.entity.allen.SolvedACResponseEntity;
 import com.example.algoyweb.model.entity.user.User;
 import com.example.algoyweb.repository.allen.SolvedACResponseRepository;
 import com.example.algoyweb.repository.user.UserRepository;
+import com.example.algoyweb.service.redis.RecommendationRedisService;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import jakarta.transaction.Transactional;
@@ -28,6 +29,9 @@ public class AllenService {
 
     @Value("${askallen.url}")
     String askAllenUrl;
+
+    @Value("${askopenai.url}")
+    String askOpenai;
 
     private final HttpURLConnectionEx httpEx;
     private final SolvedACResponseRepository solvedACResponseRepository;
@@ -158,9 +162,9 @@ public class AllenService {
 //    }
 
 
-    public ResponseEntity<String> sovledacCall(String algoyUserName, String solvedACUserName) throws Exception {
+    public ResponseEntity<String> solvedacCall(String algoyUserName, String solvedACUserName) throws Exception {
 
-        String requestUrl = askAllenUrl + "/response?algoyusername=" + algoyUserName
+        String requestUrl = askOpenai + "?algoyusername=" + algoyUserName
                 + "&solvedacusername=" + solvedACUserName;
 
         Map<String, String> headers = new HashMap<>();
@@ -258,7 +262,7 @@ public class AllenService {
 
     //질문을 allen API에 묻고 답변을 받아온다
     public String askAllen(String algoyUserName, String solvedACUserName) throws Exception {
-        String askUrl = askAllenUrl + "?algoyusername=" + algoyUserName + "&solvedacusername=" + solvedACUserName;
+        String askUrl = askOpenai + "?algoyusername=" + algoyUserName + "&solvedacusername=" + solvedACUserName;
         System.out.println(askUrl);
 
         Map<String, String> headers = new HashMap<>();

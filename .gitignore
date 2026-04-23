@@ -172,7 +172,7 @@ gradle-app.setting
 
 # End of https://www.toptal.com/developers/gitignore/api/gradle,java,intellij
 
-application-local.yml
+src/main/resources/application-local.yml
 
 # Local analysis docs generated during repository inspection
 docs/
