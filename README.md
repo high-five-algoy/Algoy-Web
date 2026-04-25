@@ -200,7 +200,7 @@ flowchart TD
 | `recommendation:refresh-lock:{userEmail}` | String | `"1"` | 2분 | 같은 사용자 중복 추천 문제 갱신 방지 |
 
 ### ERD (Web 서버)
-![ERD](../assets/img/erd.png)
+![algoy erd](assets/img/erd.png)
 
 ### MongoDB (AI 서버)
 
