@@ -1,33 +1,33 @@
-# Algoy README 초안
+# Algoy-Web Application
+사용자가 실제로 접속하는 서비스, 추천 조회 경로와 상태 저장을 담당
 
 ## 프로젝트 소개
 
-Algoy는 알고리즘 학습과 문제 추천을 지원하는 웹 서비스입니다. 사용자는 코딩 테스트 문제 제공 외부 API 기반 정보와 외부 AI API를 연동해 문제를 추천받고, 학습 기록을 관리할 수 있습니다.
+Algoy는 알고리즘 학습과 문제 추천을 지원하는 웹 서비스입니다. 사용자는 풀이 이력을 바탕으로 AI 추천을 받고, 학습 기록을 관리할 수 있습니다.
 
-저는 해당 프로젝트에서 AI 문제 추천 기능과 성능 개선 및 운영 환경 구성을 담당했습니다.                                                                                                               
-1차 개발에서는 웹 서비스와 AI 추천 서비스를 분리해 장애 영향을 격리하는 구조를 설계했고,
-추천 기능의 기본 동작 흐름을 구현 했습니다.
-2차 개발에서는 Redis와 비동기를 도입해 추천 조회 경로와 추천 생성 경로를 분리했습니다.                        
-또한 CI/CD 배포 자동화, Nginx 설정, 서버 환경 구축까지 함께 맡아 기능 개선부터 인프라 구축을 수행하였습니다.
+본 프로젝트는 1차 개발 이후 2차 개발을 거쳐 개선했습니다
+ 
+1차 개발: 웹 서비스와 AI 추천 서비스를 분리해 장애 영향을 격리하는 구조를 설계했고,
+        추천 기능의 기본 동작 흐름을 구현 했습니다.
+
+2차 개발: Redis와 비동기를 도입해 추천 조회 경로와 추천 생성 경로를 분리했습니다.
 
 - 프로젝트 기간: 1차 2024.08.19 - 2024.09.12 / 2차 2026.04.03 - 2026.04.23
 - 진행 형태: 6인 팀 프로젝트
-- 담당 영역:
+- 담당 기능 구현:
     - AI 문제 추천 기능 구현
-    - AI 추천 서비스 분리 아키텍처 설계
     - Redis 기반 추천 queue / set / lock 구조 설계
     - 비동기 refresh 처리 및 성능 개선
     - CI/CD 배포 자동화
-    - Nginx 설정 및 서버 환경 구축
 
 
 ## As-Is (1차 개발)
 
-1차 개발에서는 로그인 성공 직후 웹 애플리케이션이 AI 추천 애플리케이션을 동기 호출해 추천 결과를 생성하고, 이를 MySQL에 저장한 뒤 홈 화면에서 다시 조회하는 구조였습니다.
+1차 개발에서는 로그인 성공 직후 웹 애플리케이션이 AI 추천 애플리케이션을 동기 호출해 추천 결과를 생성하고, 이를 MySQL에 저장한 뒤 홈 화면에서 다시 조회하는 구조
 
-- AI API 호출이 로그인 요청과 같은 경로에서 수행되었습니다.
-- 홈 화면은 MySQL에 저장된 추천 결과를 조회해 랜덤 문제 1개를 노출했습니다.
-- 따라서 외부 AI API 지연이 로그인 및 홈 응답 시간에 직접 영향을 주는 구조였습니다.
+- AI API 호출이 로그인 요청과 같은 경로에서 수행
+- 홈 화면은 MySQL에 저장된 추천 결과를 조회해 랜덤 문제 1개를 노출
+- 따라서 외부 AI API 지연이 로그인 및 홈 응답 시간에 직접 영향을 주는 구조
 
 ### 플로우 차트(As-Is)
 
@@ -35,7 +35,7 @@ Algoy는 알고리즘 학습과 문제 추천을 지원하는 웹 서비스입�
 <summary>As-Is 플로우 차트 보기</summary>
 
 ```mermaid
-flowchart TD
+flowchart LR
     A["사용자 로그인"] --> B["Spring Security 인증 성공"]
     B --> C["UserAuthenticationSuccessHandler 실행"]
     C --> D{"solved.ac username 존재"}
@@ -65,8 +65,8 @@ flowchart TD
 
 로그 기준으로도 이 병목은 명확했습니다.
 
-- 로그인 경로는 평균 8.3초였고, 그 지연의 대부분이 AI 호출 대기 시간(평균 8.286초)이었습니다.
-- 전체 OpenAI 호출은 최대 14.299초까지 증가해, 느린 외부 I/O가 요청 경로 병목의 핵심임을 확인했습니다.
+- 로그인 경로는 평균 8287ms 였고, 그 지연의 대부분이 AI 호출 대기 시간(평균 8286ms)이었습니다.
+- 전체 OpenAI 호출은 최대 14299ms 까지 증가해, 느린 외부 I/O가 요청 경로 병목의 핵심임을 확인했습니다.
 
 즉, 문제의 본질은 느린 외부 API 호출이 사용자 요청 경로 안에서 동기적으로 수행되고 있었다는 점이었습니다.
 
@@ -96,7 +96,7 @@ flowchart TD
 <summary>To-Be 플로우 차트 보기</summary>
 
 ```mermaid
-flowchart TD
+flowchart LR
     A["사용자 홈 요청"] --> B["Redis active queue에서 추천 1개 pop"]
     B --> C{"추천 존재?"}
 
@@ -124,17 +124,17 @@ flowchart TD
 
 ## 성과
 
-- 추천 문제를 노출하는 홈 응답이 평균 6749.3ms에서 21.4ms로 줄었다
-- 외부 AI API 호출을 비동기 처리로 분리해, 느린 외부 호출이 홈 응답 시간에 직접 전파되지 않도록 개선했다.
-- Redis 기반 문제 추천 구조를 적용해 추천 상태를 관리하고 중복 추천을 관리했다.
+- 추천 refresh가 필요한 홈 요청 기준 응답 시간이 평균 6749.3ms에서 21.4ms로 줄었습니다.
+- 외부 AI API 호출을 비동기 처리로 분리해, 느린 외부 호출이 홈 응답 시간에 직접 전파되지 않도록 개선했습니다.
+- Redis 기반 문제 추천 구조를 적용해 추천 상태를 관리하고 중복 추천을 관리했습니다.
 
 ### Before / After 성능 로그 비교
 
 
-| 항목        | Before avg | After avg | 해석                                    |
-|-----------| --- | --- |---------------------------------------|
-| Home 호출   | `6749.3ms` | `21.4ms` | 문제 추천을 위한 외부 API 호출 상황에서도 홈 응답을 시간 단축 |
-| 외부 AI API | `6733.2ms ` | `21702.5ms ` | 외부 API 자체는 빨라지지 않았지만, 요청 경로 영향은 제거    |
+| 항목                          | Before avg / p95  | After avg / p95 | 해석                                    |
+|-----------------------------|-------------------|-----------------|---------------------------------------|
+| Home 호출<br/>(추천 refresh 필요) | `6749.3ms / 10898ms` | `21.4ms / 48ms` | 문제 추천을 위한 외부 API 호출 상황에서도 홈 응답을 시간 단축 |
+| 외부 AI API 호출                | `6733.2ms / 10823ms` | `21702.5ms / 22850ms` | 외부 API 자체는 빨라지지 않았지만, 요청 경로 영향은 제거    |
 
 
 
@@ -149,9 +149,21 @@ flowchart TD
 
 
 ## 아키텍처 구조
+- 1차는 Mysql를 주요 DB로 사용 2차는 In-memory DB인 redis를 주요 DB로 사용하여 추천 문제를 관리하였습니다. 
 
+
+### 1차 아키텍처
+  <p align="center">                                                                                                                                                                
+    <img src="assets/img/architecture.png" alt="architecture-v1" width="900">                                                                                                    
+  </p>                                                                                                                                                                              
+
+### 2차 아키텍처
+  <p align="center">                                                                                                                                                                
+    <img src="assets/img/architecture2.png" alt="architecture-v2" width="900">                                                                                                   
+  </p> 
 
 ## 프로젝트 구조
+제가 구현한 AI 문제 추천 기능 중심의 패키지와 클래스만 정리했습니다.
 
 ```plaintext                                                                                                                                                               
     src/main/java/com/example/algoyweb                                                                                                                                         
@@ -202,70 +214,51 @@ flowchart TD
 ### ERD (Web 서버)
 ![algoy erd](assets/img/erd.png)
 
-### MongoDB (AI 서버)
-
-| Collection | 주요 필드 | 역할 |
-| --- | --- | --- |
-| `problem_recommendations` | `_id`, `userId`, `recommendedProblems[]`, `createdAt`, `updatedAt` | OpenAI 추천 결과 저장 |
-| `chat_messages` | `_id`, `content`, `responses[]`, `timestamp` | 챗봇 대화 메시지 저장 |
-| `quiz_recommend` | `_id`, `userId`, `content`, `response`, `timeStamp` | 추천 질의/응답 기록 저장 |
-
- <details>                                                                                                                                                                         
-  <summary><code>problem_recommendations</code> 문서 예시</summary>                                                                                                                 
-
-  ```json                                                                                                                                                                           
-  {                                                                                                                                                                                 
-    "_id": "661f...",                                                                                                                                                               
-    "userId": "zoanna5442@gmail.com",                                                                                                                                               
-    "recommendedProblems": [                                                                                                                                                        
-      {                                                                                                                                                                             
-        "problemNo": "1000",                                                                                                                                                        
-        "title": "A+B",                                                                                                                                                             
-        "details": "기초 구현 문제"                                                                                                                                                 
-      }                                                                                                                                                                             
-    ],                                                                                                                                                                              
-    "createdAt": "2026-04-23T18:00:00",                                                                                                                                             
-    "updatedAt": "2026-04-23T18:00:00"                                                                                                                                              
-  }                                                                                                                                                                                 
-  </details>                                                                                                                                                                        
-  ```       
-
-
 
 ## UI 설계
 
-- Figma: [Algoy UI Design](https://www.figma.com/design/cFtdGffRUuFPeJqK6kcBUc/Algoy?node-id=0-1&node-type=canvas&t=jG8aeeZxixqGCodM-0)
+- 전체 Figma: [Algoy UI Design](https://www.figma.com/design/cFtdGffRUuFPeJqK6kcBUc/Algoy?node-id=0-1&node-type=canvas&t=jG8aeeZxixqGCodM-0)
 
-## 담당 기술 스택
+## 기술 스택
+제가 사용한 기술 스택 위주로 작성했습니다.
 
-#### Backend
-- `Java 17`
-- `Spring Boot`
-- `Spring Security`
-- `JPA`
-
-#### Database / Storage
-- `Redis`
-- `StringRedisTemplate`
-- `MySQL`
-
-#### API / Communication
-- `REST API`
-- `WebClient`
-
-#### Async / Performance
-- `Spring Async`
-- `ThreadPoolTaskExecutor`
-
-#### Infra / DevOps
-- `Amazon EC2`
-- `Amazon RDS`
-- `Nginx`
-- `GitHub Actions`
-- `Docker`
+<h4 align="center">Backend</h4>
+  <p align="center">                                                                                                                                                                
+    <img src="https://img.shields.io/badge/Java%2017-007396?style=for-the-badge&logo=openjdk&logoColor=white">                                                                      
+    <img src="https://img.shields.io/badge/Spring%20Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white">                                                               
+    <img src="https://img.shields.io/badge/Spring%20Security-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white">                                                       
+    <img src="https://img.shields.io/badge/JPA-59666C?style=for-the-badge">                                                                                                         
+  </p>  
 
 
+<h4 align="center">Database / Storage</h4>
+  <p align="center">                                                                                                                                                                
+    <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white">                                                                            
+    <img src="https://img.shields.io/badge/StringRedisTemplate-6DB33F?style=for-the-badge&logo=spring&logoColor=white">                                                             
+    <img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white">
+  </p> 
 
+  <h4 align="center">API / Communication</h4>
+  <p align="center">                                                                                                                                                                
+    <img src="https://img.shields.io/badge/REST%20API-02569B?style=for-the-badge">                                                                                                  
+    <img src="https://img.shields.io/badge/WebClient-6DB33F?style=for-the-badge&logo=spring&logoColor=white">                                                                       
+  </p> 
+
+<h4 align="center">Async / Performance</h4>
+  <p align="center">                                                                                                                                                                
+    <img src="https://img.shields.io/badge/Spring%20Async-6DB33F?style=for-the-badge&logo=spring&logoColor=white">                                                                  
+    <img src="https://img.shields.io/badge/ThreadPoolTaskExecutor-007396?style=for-the-badge&logo=openjdk&logoColor=white">                                                         
+  </p>
+
+
+<h4 align="center">Infra / DevOps</h4>
+  <p align="center">                                                                                                                                                                
+    <img src="https://img.shields.io/badge/Amazon%20EC2-FF9900?style=for-the-badge&logo=amazonec2&logoColor=white">                                                                 
+    <img src="https://img.shields.io/badge/Amazon%20RDS-527FFF?style=for-the-badge&logo=amazonrds&logoColor=white">                                                                 
+    <img src="https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white">                                                                            
+    <img src="https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white">                                                         
+    <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white">                                                                          
+  </p>
 
 
 
