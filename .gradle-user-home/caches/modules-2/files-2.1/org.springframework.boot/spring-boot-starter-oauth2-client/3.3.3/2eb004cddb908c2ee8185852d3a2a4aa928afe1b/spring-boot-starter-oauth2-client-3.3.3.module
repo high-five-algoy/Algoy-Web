@@ -1,0 +1,174 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.springframework.boot",
+    "module": "spring-boot-starter-oauth2-client",
+    "version": "3.3.3",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "7.6.4"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter",
+          "version": {
+            "requires": "3.3.3"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-config",
+          "version": {
+            "requires": "6.3.3"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-core",
+          "version": {
+            "requires": "6.3.3"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-oauth2-client",
+          "version": {
+            "requires": "6.3.3"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-oauth2-jose",
+          "version": {
+            "requires": "6.3.3"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-starter-oauth2-client-3.3.3.jar",
+          "url": "spring-boot-starter-oauth2-client-3.3.3.jar",
+          "size": 4778,
+          "sha512": "0f75b13203e9583e9645c7bc740b0eec7570cfe6971936a8c88800ead74a5e30a00b8e0714f86cb1ef770ca77383e8e93519d870e23c94a372b9cf83f901f94a",
+          "sha256": "4774ef353a7f57363d9e7f958c3309d92d54bb3c39d359a69a7dcfa235bf9b66",
+          "sha1": "f0ee78d2378e6b82df9ec973e641f6fd02283eb8",
+          "md5": "61d1de387f4bdea5e2b5b258b80a698f"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.boot",
+          "module": "spring-boot-starter",
+          "version": {
+            "requires": "3.3.3"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-config",
+          "version": {
+            "requires": "6.3.3"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-core",
+          "version": {
+            "requires": "6.3.3"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-oauth2-client",
+          "version": {
+            "requires": "6.3.3"
+          }
+        },
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-oauth2-jose",
+          "version": {
+            "requires": "6.3.3"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-boot-starter-oauth2-client-3.3.3.jar",
+          "url": "spring-boot-starter-oauth2-client-3.3.3.jar",
+          "size": 4778,
+          "sha512": "0f75b13203e9583e9645c7bc740b0eec7570cfe6971936a8c88800ead74a5e30a00b8e0714f86cb1ef770ca77383e8e93519d870e23c94a372b9cf83f901f94a",
+          "sha256": "4774ef353a7f57363d9e7f958c3309d92d54bb3c39d359a69a7dcfa235bf9b66",
+          "sha1": "f0ee78d2378e6b82df9ec973e641f6fd02283eb8",
+          "md5": "61d1de387f4bdea5e2b5b258b80a698f"
+        }
+      ]
+    },
+    {
+      "name": "javadocElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "javadoc",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-starter-oauth2-client-3.3.3-javadoc.jar",
+          "url": "spring-boot-starter-oauth2-client-3.3.3-javadoc.jar",
+          "size": 4748,
+          "sha512": "6547900eb6368c871105055219ea6661c9f7557bd9bb44edfbb8462576d2d59d11fc051e1eac91927d7b21820446cecb05617bf529f16a136add6e1c7890c0a6",
+          "sha256": "af39622c548e967fd83344e59c2c27854db71861e737986d495cc096f38e6c00",
+          "sha1": "f28a47a47eb6bf9a6c805d566264c5c7f2ba864a",
+          "md5": "1e7d1f9b2a841b96578d01cff57515ce"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-boot-starter-oauth2-client-3.3.3-sources.jar",
+          "url": "spring-boot-starter-oauth2-client-3.3.3-sources.jar",
+          "size": 4747,
+          "sha512": "c8bdd1b2c32fae3c1ce9abee4aab2717c48b788df3e11ae1cfa3a71ada369c2b7a79d3f24ac8c43bf4be24e6e85d89002511c004453f456be6747a3758b437b3",
+          "sha256": "1dbcae952432fc0f5639ceeb0750a77a46d875f83f58787f7361ebb0b336ba9e",
+          "sha1": "a8778187604501c68d6508347fa7a073f0321527",
+          "md5": "a1b844df101a980321edb78103cef8b8"
+        }
+      ]
+    }
+  ]
+}

@@ -2,6 +2,7 @@ package com.example.algoyweb.controller;
 
 import com.example.algoyweb.service.user.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
 @RequiredArgsConstructor
+@Slf4j
 public class HomeController {
 
     private final UserService userService;
@@ -35,19 +37,28 @@ public class HomeController {
      * @param model 뷰에 데이터를 전달하기 위한 Model 객체
      * @return 홈 화면 뷰의 이름 (html)
      */
+    //원본
     @GetMapping("/algoy/home")
     public String home(@AuthenticationPrincipal UserDetails userDetails, Model model) {
+        long start = System.nanoTime();
 
         // 사용자가 인증되지 않았다면 로그인 페이지로 리다이렉트
         if (userDetails == null) {
             model.addAttribute("problem", null);
             model.addAttribute("backendUrl", backendUrl);
+
+            log.info(
+                    "[PERF_HOME] userEmail={} totalMs={} scenario=anonymous",
+                    null,
+                    java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+            );
+
             return "home";
         }
-        System.out.println("유저 체크");
+
         // 현재 로그인한 사용자 이름 가져오기
         String userEamil = userDetails.getUsername();
-        System.out.println("getEmail? " + userEamil);
+
 
         // 로그인한 사용자의 solvedACUserName 가져오기
         Boolean CheckedSolvedACUserName = userService.checkSolvedACUserNameByUsername(userEamil);
@@ -56,16 +67,84 @@ public class HomeController {
         if (!CheckedSolvedACUserName) {
             model.addAttribute("problem", null);
             model.addAttribute("backendUrl", backendUrl);
+
+            log.info(
+                    "[PERF_HOME] userEmail={} totalMs={} scenario=no_solvedac",
+                    userEamil,
+                    java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+            );
+
             return "home"; // SolvedAC username이 없는 경우, 홈 화면에 머무름
         }
-        System.out.println("solvedAC username 존재함");
         // 로그인한 사용자 solvedAC username 기반 추천 문제 가져오기
         String problemToShow = userService.getRandomProblemsByUsername(userEamil);
-        System.out.println("=============" +problemToShow +"=================");
+
 
         // 추천 문제가 존재할 경우에만 전달
         model.addAttribute("problem", problemToShow);
         model.addAttribute("backendUrl", backendUrl);
+
+        log.info(
+                "[PERF_HOME] userEmail={} totalMs={} scenario=recommendation",
+                userEamil,
+                java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+        );
+
         return "home"; // view name
     }
+
+    /**
+     * 로그 찍기 위해 사용했던 임시 함수
+     *
+     * @author 조아라
+     * @since 2026.04.22
+     */
+//    @GetMapping("/algoy/home")
+//    public String home(@AuthenticationPrincipal UserDetails userDetails, Model model) {
+//        long start = System.nanoTime();
+//
+//        if (userDetails == null) {
+//            model.addAttribute("problem", null);
+//            model.addAttribute("backendUrl", backendUrl);
+//
+//            // 로그인하지 않은 사용자의 홈 응답시간
+//            log.info(
+//                    "[PERF_HOME] userEmail={} totalMs={}",
+//                    null,
+//                    java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+//            );
+//            return "home";
+//        }
+//
+//        String userEamil = userDetails.getUsername();
+//        Boolean CheckedSolvedACUserName = userService.checkSolvedACUserNameByUsername(userEamil);
+//
+//        if (!CheckedSolvedACUserName) {
+//            model.addAttribute("problem", null);
+//            model.addAttribute("backendUrl", backendUrl);
+//
+//            // solved.ac 계정이 없는 사용자의 홈 응답시간
+//            log.info(
+//                    "[PERF_HOME] userEmail={} totalMs={}",
+//                    userEamil,
+//                    java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+//            );
+//            return "home";
+//        }
+//
+//        String problemToShow = userService.getRandomProblemsByUsername(userEamil);
+//        model.addAttribute("problem", problemToShow);
+//        model.addAttribute("backendUrl", backendUrl);
+//
+//// 추천 문제 조회까지 포함한 최종 홈 응답시간
+//        log.info(
+//                "[PERF_HOME] userEmail={} totalMs={}",
+//                userEamil,
+//                java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+//        );
+//        return "home";
+//
+//    }
+
+
 }

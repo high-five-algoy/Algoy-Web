@@ -5,6 +5,7 @@ import com.example.algoyweb.model.entity.allen.SolvedACResponseEntity;
 import com.example.algoyweb.model.entity.user.User;
 import com.example.algoyweb.repository.allen.SolvedACResponseRepository;
 import com.example.algoyweb.repository.user.UserRepository;
+import com.example.algoyweb.service.redis.RecommendationRedisService;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import jakarta.transaction.Transactional;
@@ -29,15 +30,21 @@ public class AllenService {
     @Value("${askallen.url}")
     String askAllenUrl;
 
+    @Value("${askopenai.url}")
+    String askOpenai;
+
     private final HttpURLConnectionEx httpEx;
     private final SolvedACResponseRepository solvedACResponseRepository;
     private final UserRepository userRepository;
+    private final RecommendationRedisService recommendationRedisService;
 
     @Autowired
-    public AllenService(HttpURLConnectionEx httpEx, SolvedACResponseRepository solvedACResponseRepository, UserRepository userRepository) {
+    public AllenService(HttpURLConnectionEx httpEx, SolvedACResponseRepository solvedACResponseRepository,
+                        UserRepository userRepository, RecommendationRedisService recommendationRedisService) {
         this.httpEx = httpEx;
         this.solvedACResponseRepository = solvedACResponseRepository;
         this.userRepository = userRepository;
+        this.recommendationRedisService = recommendationRedisService;
 
     }
 
@@ -48,6 +55,51 @@ public class AllenService {
      * @return void
      * 추천받는 문제 5개(List)를 DB에 저장하는 메서드
      */
+
+//    public void saveResponse(String username, List<String> responseList) {
+//        User user = userRepository.findByUsername(username)
+//                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+//
+//        SolvedACResponseEntity solvedACResponseEntity = solvedACResponseRepository.findByUserUsername(username)
+//                .orElse(SolvedACResponseEntity.builder()
+//                        .user(user)
+//                        .userEmail(user.getEmail())
+//                        .response(responseList)
+//                        .updatedAt(LocalDateTime.now())
+//                        .build());
+//
+//        solvedACResponseEntity.updateResponse(responseList);
+//        solvedACResponseRepository.save(solvedACResponseEntity);
+//    }
+
+    /**
+     * 로그인 이후 추천받은 문제 5개(List)를 redis에 저장하는 메서드
+     *
+     * @author 조아라
+     * @return void
+     * 추천받은 문제 5개(List)를 Mysql에 fallback 용도로 1세트만 저장한다
+     * redis에도 add 하여 화면에 보여준다
+     */
+//    @Transactional
+//    public void saveResponse(String username, List<String> responseList) {
+//        User user = userRepository.findByUsername(username)
+//                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+//
+//        SolvedACResponseEntity solvedACResponseEntity = solvedACResponseRepository.findByUserUsername(username)
+//                .orElse(SolvedACResponseEntity.builder()
+//                        .user(user)
+//                        .userEmail(user.getEmail())
+//                        .response(responseList)
+//                        .updatedAt(LocalDateTime.now())
+//                        .build());
+//
+//        // MySQL에는 사용자별 마지막 추천 1세트만 overwrite 저장한다.
+//        solvedACResponseEntity.updateResponse(responseList);
+//        solvedACResponseRepository.save(solvedACResponseEntity);
+//
+//        // Redis active 키도 새 추천 1세트로 교체한다.
+//        recommendationRedisService.replaceActiveRecommendations(user.getEmail(), responseList);
+//    }
     @Transactional
     public void saveResponse(String username, List<String> responseList) {
         User user = userRepository.findByUsername(username)
@@ -61,9 +113,13 @@ public class AllenService {
                         .updatedAt(LocalDateTime.now())
                         .build());
 
+        // 이 메서드는 검수된 최종 추천 세트만 저장한다.
+        // seen 검수와 seen 저장은 이 메서드에 오기 전에 끝나 있어야 한다.
         solvedACResponseEntity.updateResponse(responseList);
         solvedACResponseRepository.save(solvedACResponseEntity);
+        recommendationRedisService.replaceActiveRecommendations(user.getEmail(), responseList);
     }
+
 
 
     /**
@@ -75,35 +131,91 @@ public class AllenService {
      * AI(8082) 애플리케이션에 API 통신한다
      */
 
-    public ResponseEntity<String> sovledacCall(String algoyUserName, String solvedACUserName) throws Exception {
+//    public ResponseEntity<String> sovledacCall(String algoyUserName, String solvedACUserName) throws Exception {
+//
+//        String requestUrl = askAllenUrl + "/response?algoyusername=" + algoyUserName + "&solvedacusername=" + solvedACUserName;
+//
+//
+//        Map<String, String> headers = new HashMap<>();
+//        headers.put("Content-Type", "application/json");
+//
+//        String allenResponse = ""; //앨런에게 바로 받은 답변
+//        String temp = ""; // 마크다운을 제거한 Json 형식 답변
+//        List<String> responseList= new ArrayList<>(); //Json에서 텍스트 형식으로 변환한 화면에 띄울 최종 답변
+//        try{
+//            //API 응답을 받는다(Json 형태)
+//            allenResponse = httpEx.get(requestUrl, headers);
+//            temp = extractJsonFromMarkdown(allenResponse);
+//
+//            //Json을 파싱해서 문제 제목을 list에 넣고 반환하는 메서드 호출
+//            responseList = convertJsonToListString(temp);
+//            System.out.println(responseList);
+//
+//            //변경사항을 저장한다.
+//            saveResponse(algoyUserName, responseList);
+//
+//            return ResponseEntity.ok("성공");
+//
+//        } catch (Exception e){
+//            throw new Exception("solvedAC 호출 실패", e); //?덉쇅 諛쒖깮???곸쐞濡??꾨떖
+//        }
+//    }
 
-        String requestUrl = askAllenUrl + "/response?algoyusername=" + algoyUserName + "&solvedacusername=" + solvedACUserName;
 
+    public ResponseEntity<String> solvedacCall(String algoyUserName, String solvedACUserName) throws Exception {
+
+        String requestUrl = askOpenai + "?algoyusername=" + algoyUserName
+                + "&solvedacusername=" + solvedACUserName;
 
         Map<String, String> headers = new HashMap<>();
         headers.put("Content-Type", "application/json");
 
-        String allenResponse = ""; //앨런에게 바로 받은 답변
-        String temp = ""; // 마크다운을 제거한 Json 형식 답변
-        List<String> responseList= new ArrayList<>(); //Json에서 텍스트 형식으로 변환한 화면에 띄울 최종 답변
-        try{
-            //API 응답을 받는다(Json 형태)
-            allenResponse = httpEx.get(requestUrl, headers);
-            temp = extractJsonFromMarkdown(allenResponse);
+        try {
+            String allenResponse = httpEx.get(requestUrl, headers);
+            String temp = extractJsonFromMarkdown(allenResponse);
 
-            //Json을 파싱해서 문제 제목을 list에 넣고 반환하는 메서드 호출
-            responseList = convertJsonToListString(temp);
-            System.out.println(responseList);
+            // JSON 응답을 문자열로 바로 바꾸지 않고 DTO 배열로 먼저 받는다.
+            // 이 단계에서 problemNo를 꺼내 seen 검수를 해야 문자열 역파싱이 필요 없다.
+            Gson gson = new Gson();
+            SolvedACJsonResponse[] responses = gson.fromJson(temp, SolvedACJsonResponse[].class);
 
-            //변경사항을 저장한다.
+            User user = userRepository.findByUsername(algoyUserName)
+                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+            List<SolvedACJsonResponse> filteredResponses = new ArrayList<>();
+            for (SolvedACJsonResponse response : responses) {
+                // title 또는 problemNo가 없으면 추천 후보로 쓰지 않는다.
+                if (response.getTitle() == null || response.getProblemNo() == null) {
+                    continue;
+                }
+
+                // 이미 추천 후보로 처리한 problemNo면 이번 세트에서 제외한다.
+                if (recommendationRedisService.isSeen(user.getEmail(), response.getProblemNo())) {
+                    continue;
+                }
+
+                // 이번 세트에 포함시키는 순간 seen에도 바로 기록한다.
+                recommendationRedisService.markAsSeen(user.getEmail(), response.getProblemNo());
+                filteredResponses.add(response);
+            }
+
+            // 검수를 통과한 DTO만 화면 표시용 문자열로 변환한다.
+            List<String> responseList = convertJsonToListString(filteredResponses);
+            if (responseList.isEmpty()) {
+                return ResponseEntity.ok("새 추천 문제가 없습니다.");
+            }
+
+            // 최종 세트만 MySQL fallback과 Redis active 큐에 저장한다.
             saveResponse(algoyUserName, responseList);
-
             return ResponseEntity.ok("성공");
 
-        } catch (Exception e){
-            throw new Exception("solvedAC 호출 실패", e); //예외 발생시 상위로 전달
+        } catch (Exception e) {
+            throw new Exception("solvedAC 호출 실패", e);
         }
     }
+
+
+
 
     /**
      * (5문제)
@@ -112,22 +224,37 @@ public class AllenService {
      * @return String
      *
      */
-    //호출한 정보를 리스트에 넣는다 (5가지 문제 추천)
-    public List<String> convertJsonToListString(String jsonResponse){
-        //Gson 객체 생성
-        Gson gson = new Gson();
+//    //호출한 정보를 리스트에 넣는다 (5가지 문제 추천)
+//    public List<String> convertJsonToListString(String jsonResponse){
+//        //Gson 객체 생성
+//        Gson gson = new Gson();
+//
+//        // Json을 배열 형태로 파싱
+//        SolvedACJsonResponse[] responses = gson.fromJson(jsonResponse, SolvedACJsonResponse[].class);
+//        //결과를 담을 리스트 생성// 응답 배열에서 각 항목을 순회하며 제목을 추출하여 리스트에 추가
+//        List<String> titlesList = new ArrayList<>();
+//
+//
+//        // 응답 배열에서 각 항목을 순회하며 제목을 추출하여 리스트에 추가
+//        for (SolvedACJsonResponse response : responses) {
+//            if (response.getTitle() != null) {
+//                String tmp = response.getSite() + " - " + response.getTitle() + " (" + response.getProblemNo() + ")\n" + response.getDetails();
+//                titlesList.add(tmp);
+//            }
+//        }
+//        return titlesList;
+//    }
 
-        // Json을 배열 형태로 파싱
-        SolvedACJsonResponse[] responses = gson.fromJson(jsonResponse, SolvedACJsonResponse[].class);
-        //결과를 담을 리스트 생성
+    // 여기서는 검수 로직을 넣지 않고, 검수를 통과한 DTO를 화면용 문자열로만 바꾼다.
+    public List<String> convertJsonToListString(List<SolvedACJsonResponse> responses) {
         List<String> titlesList = new ArrayList<>();
 
-
-        // 응답 배열에서 각 항목을 순회하며 제목을 추출하여 리스트에 추가
         for (SolvedACJsonResponse response : responses) {
             if (response.getTitle() != null) {
-                String tmp = response.getSite() + " - " + response.getTitle() + " (" + response.getProblemNo() + ")\n" + response.getDetails();
-                titlesList.add(tmp);
+                String text = response.getSite() + " - "
+                        + response.getTitle() + " (" + response.getProblemNo() + ")\n"
+                        + response.getDetails();
+                titlesList.add(text);
             }
         }
         return titlesList;
@@ -135,7 +262,7 @@ public class AllenService {
 
     //질문을 allen API에 묻고 답변을 받아온다
     public String askAllen(String algoyUserName, String solvedACUserName) throws Exception {
-        String askUrl = askAllenUrl + "?algoyusername=" + algoyUserName + "&solvedacusername=" + solvedACUserName;
+        String askUrl = askOpenai + "?algoyusername=" + algoyUserName + "&solvedacusername=" + solvedACUserName;
         System.out.println(askUrl);
 
         Map<String, String> headers = new HashMap<>();

@@ -8,14 +8,17 @@ import com.example.algoyweb.exception.errorcode.UserErrorCode;
 import com.example.algoyweb.model.entity.allen.SolvedACResponseEntity;
 import com.example.algoyweb.model.entity.user.Role;
 import com.example.algoyweb.repository.allen.SolvedACResponseRepository;
+import com.example.algoyweb.service.redis.RecommendationRedisService;
+import com.example.algoyweb.service.openai.RecommendationRefreshService;
 import com.example.algoyweb.util.ConvertUtils;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -32,20 +35,32 @@ import com.example.algoyweb.model.dto.user.UserDto;
 import com.example.algoyweb.model.entity.user.User;
 import com.example.algoyweb.repository.user.UserRepository;
 
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 @Service
+@Slf4j
 public class UserService implements UserDetailsService {
 	private final SolvedACResponseRepository solvedACResponseRepository;
 	private final UserRepository userRepository;
-	private final PasswordEncoder passwordEncoder; // Spring Security의 PasswordEncoder 사용
+	private final PasswordEncoder passwordEncoder; // Spring Security??PasswordEncoder ?ъ슜
+	private final RecommendationRedisService recommendationRedisService;
+	private final RecommendationRefreshService recommendationRefreshService;
+	private final WebClient webClient;
+
 
 	@Autowired
 	public UserService(SolvedACResponseRepository solvedACResponseRepository, UserRepository userRepository,
-		PasswordEncoder passwordEncoder) {
+		PasswordEncoder passwordEncoder, RecommendationRedisService recommendationRedisService,
+					   RecommendationRefreshService recommendationRefreshService,
+					   WebClient.Builder webClientBuilder) {
 		this.solvedACResponseRepository = solvedACResponseRepository;
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.recommendationRedisService = recommendationRedisService;
+		this.recommendationRefreshService = recommendationRefreshService;
+		this.webClient = webClientBuilder.build();
 	}
 
 	/**
@@ -335,45 +350,250 @@ public class UserService implements UserDetailsService {
 	 * js에서 구현했을때 CORS에러로 인해 서버에서 로직을 처리함.
 	 */
 
+//	public boolean isUsernameValid(String solvedacUsername) {
+//		String SOLVEDAC_USERNAME_VALID = "https://solved.ac/api/v3/user/show?handle=";
+//
+//		try {
+//			RestTemplate restTemplate = new RestTemplate();
+//			String apiUrl = SOLVEDAC_USERNAME_VALID + solvedacUsername;
+//
+//			ResponseEntity<String> response = restTemplate.getForEntity(apiUrl, String.class);
+//			// username이 존재하면 true 반환
+//			return response.getStatusCode().is2xxSuccessful();
+//
+//		} catch (Exception e) {
+//			// 존재하지 않는다면 false 반환
+//			return false;
+//		}
+//
+//	}
+
+//	public boolean isUsernameValid(String solvedacUsername) {
+//		String solvedacUsernameValid = "https://solved.ac/api/v3/user/show?handle=";
+//
+//		try {
+//			RestTemplate restTemplate = new RestTemplate();
+//			String apiUrl = solvedacUsernameValid + solvedacUsername;
+//
+//			log.info("SolvedAC username validation start. username={}, url={}", solvedacUsername, apiUrl);
+//
+//			ResponseEntity<String> response = restTemplate.getForEntity(apiUrl, String.class);
+//
+//			log.info(
+//					"SolvedAC username validation success. username={}, status={}",
+//					solvedacUsername,
+//					response.getStatusCode()
+//			);
+//
+//			return response.getStatusCode().is2xxSuccessful();
+//
+//		} catch (RestClientException e) {
+//			log.warn(
+//					"SolvedAC username validation failed. username={}, message={}",
+//					solvedacUsername,
+//					e.getMessage(),
+//					e
+//			);
+//			return false;
+//		} catch (Exception e) {
+//			log.error(
+//					"Unexpected error during SolvedAC username validation. username={}",
+//					solvedacUsername,
+//					e
+//			);
+//			return false;
+//		}
+//	}
+
+
 	public boolean isUsernameValid(String solvedacUsername) {
-		String SOLVEDAC_USERNAME_VALID = "https://solved.ac/api/v3/user/show?handle=";
+		String apiUrl = "https://solved.ac/api/v3/user/show?handle=" + solvedacUsername;
 
 		try {
-			RestTemplate restTemplate = new RestTemplate();
-			String apiUrl = SOLVEDAC_USERNAME_VALID + solvedacUsername;
+//			log.info("SolvedAC username 유효성 검사 시작. username={}, url={}", solvedacUsername, apiUrl);
 
-			ResponseEntity<String> response = restTemplate.getForEntity(apiUrl, String.class);
-			// username이 존재하면 true 반환
-			return response.getStatusCode().is2xxSuccessful();
+			HttpStatusCode statusCode = webClient.get()
+					.uri(apiUrl)
+					.retrieve()
+					.toBodilessEntity()
+					.map(response -> response.getStatusCode())
+					.block();
 
+			log.info(
+					"SolvedAC username 유효성 검사 성공. username={}, status={}",
+					solvedacUsername,
+					statusCode
+			);
+
+			return statusCode != null && statusCode.is2xxSuccessful();
+
+		} catch (WebClientResponseException e) {
+			log.warn(
+					"SolvedAC username 유효성 검사 응답 에러. username={}, status={}, message={}",
+					solvedacUsername,
+					e.getStatusCode(),
+					e.getMessage(),
+					e
+			);
+			return false;
+		} catch (WebClientRequestException e) {
+			log.warn(
+					"SolvedAC username 유효성 검사 요청 에러. username={}, message={}",
+					solvedacUsername,
+					e.getMessage(),
+					e
+			);
+			return false;
 		} catch (Exception e) {
-			// 존재하지 않는다면 false 반환
+			log.error(
+					"Unexpected error during SolvedAC username validation. username={}",
+					solvedacUsername,
+					e
+			);
 			return false;
 		}
-
 	}
+
 
 	/**
 	 * home 화면에 출력할 문제 리스트에서 추출
 	 *
 	 * @author 조아라
 	 * @return 추천 문제 String 반환
-	 * 리스트에 저장된 문제들 중 랜덤으로 한 문제를 화면에 출력
+	 * 화면에 보여줄 다음 추천 문제를 가져온다
 	 */
-	public String getRandomProblemsByUsername(String userEmail) {
-		// SolvedACResponseEntity에서 사용자 문제 리스트 가져오기
-		Optional<SolvedACResponseEntity> optionalResponseEntity = solvedACResponseRepository.findByUserEmail(userEmail);
+//	public String getRandomProblemsByUsername(String userEmail) {
+//		Optional<String> nextProblem = recommendationRedisService.popNextRecommendation(userEmail);
+//
+//		// redis에서 pop 한 문제가 있으면 1. seen 데이터 저장 2. refresh 실행 3. 화면 데이터로 반환
+//
+//		if (nextProblem.isPresent()) {
+//			String selectedProblem = nextProblem.get();
+//			recommendationRedisService.markAsSeen(userEmail, recommendationRedisService.extractProblemNo(selectedProblem));
+//			recommendationRefreshService.refreshIfNeeded(userEmail);
+//			return selectedProblem;
+//		}
+//
+//		// redis에 데이터가 없으면 1. refresh로 다시 채우기 2. redis에서 pop 3. seen 저장 4. 홈 화면에 표시
+//		//redis ?먯뿉 ?곗씠?곌? ?놁쑝硫?1. refresh ?댁꽌 ??梨꾩슦湲?2. ?먯뿉??pop 3. seen ???4. ?곗씠??home??show
+//		boolean refreshed = recommendationRefreshService.refreshIfNeeded(userEmail);
+//		if (refreshed) {
+//			return recommendationRedisService.popNextRecommendation(userEmail)
+//					.map(problem -> {
+//						recommendationRedisService.markAsSeen(userEmail, recommendationRedisService.extractProblemNo(problem));
+//						return problem;
+//					})
+//					.orElse("추천 문제를 준비 중입니다.");
+//		}
+//
+//		return "추천 문제를 준비 중입니다.";
+//	}
 
-		if (optionalResponseEntity.isPresent()) {
-			SolvedACResponseEntity responseEntity = optionalResponseEntity.get();
-			List<String> recommendedProblems = responseEntity.getResponse();
-			String problemToShow = getRandomProblem(recommendedProblems);
-			return problemToShow;
-		} else {
-			return null;
+	//복구**********
+//	public String getRandomProblemsByUsername(String userEmail) {
+//
+//		Optional<String> nextProblem = recommendationRedisService.popNextRecommendation(userEmail);
+//
+//		if (nextProblem.isPresent()) {
+//			String selectedProblem = nextProblem.get();
+//			// 홈 화면에서는 큐 소비와 refresh만 담당한다.
+//			// seen 저장은 이미 API 응답 처리 단계에서 끝났다고 가정한다.
+//			//recommendationRefreshService.refreshIfNeeded(userEmail);
+//			recommendationRefreshService.triggerRefreshIfNeeded(userEmail);
+//			return selectedProblem;
+//		}
+//
+//		//boolean refreshed = recommendationRefreshService.refreshIfNeeded(userEmail);
+//		boolean refreshTriggered = recommendationRefreshService.triggerRefreshIfNeeded(userEmail);
+//		if (refreshTriggered) {
+//			return recommendationRedisService.popNextRecommendation(userEmail)
+//					.orElse("추천 문제를 준비 중입니다.");
+//		}
+//
+//		return "추천 문제를 준비 중입니다.";
+//	}
+
+	public String getRandomProblemsByUsername(String userEmail) {
+		long start = System.nanoTime();
+		Optional<String> nextProblem = recommendationRedisService.popNextRecommendation(userEmail);
+
+		if (nextProblem.isPresent()) {
+			String selectedProblem = nextProblem.get();
+			boolean refreshTriggered = recommendationRefreshService.triggerRefreshIfNeeded(userEmail);
+
+			log.info(
+					"[PERF_RECOMMEND] userEmail={} totalMs={} redisHit=true refreshTriggered={} resultType=problem",
+					userEmail,
+					java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start),
+					refreshTriggered
+			);
+			return selectedProblem;
 		}
 
+		boolean refreshTriggered = recommendationRefreshService.triggerRefreshIfNeeded(userEmail);
+		if (refreshTriggered) {
+			String result = recommendationRedisService.popNextRecommendation(userEmail)
+					.orElse("추천 문제를 준비 중입니다.");
+
+			log.info(
+					"[PERF_RECOMMEND] userEmail={} totalMs={} redisHit=false refreshTriggered=true resultType={}",
+					userEmail,
+					java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start),
+					"추천 문제를 준비 중입니다.".equals(result) ? "empty" : "problem"
+			);
+			return result;
+		}
+
+		log.info(
+				"[PERF_RECOMMEND] userEmail={} totalMs={} redisHit=false refreshTriggered=false resultType=empty",
+				userEmail,
+				java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+		);
+		return "추천 문제를 준비 중입니다.";
 	}
+	/**
+	 * 로그 찍기 위해 사용했던 임시 함수
+	 *
+	 * @author 조아라
+	 * @since 2026.04.22
+	 */
+//	public String getRandomProblemsByUsername(String userEmail) {
+//		long start = System.nanoTime();
+//		Optional<String> nextProblem = recommendationRedisService.popNextRecommendation(userEmail);
+//
+//		if (nextProblem.isPresent()) {
+//			String selectedProblem = nextProblem.get();
+//			recommendationRefreshService.refreshIfNeeded(userEmail);
+//
+//			// Redis에서 바로 꺼낸 경우
+//			log.info(
+//					"[PERF_RECOMMEND] userEmail={} totalMs={} scenario=redis_hit",
+//					userEmail,
+//					java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+//			);
+//			return selectedProblem;
+//		}
+//
+//		boolean refreshed = recommendationRefreshService.refreshIfNeeded(userEmail);
+//		if (refreshed) {
+//			log.info(
+//					"[PERF_RECOMMEND] userEmail={} totalMs={} scenario=redis_miss_refresh",
+//					userEmail,
+//					java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+//			);
+//			return recommendationRedisService.popNextRecommendation(userEmail)
+//					.orElse("추천 문제를 준비 중입니다.");
+//		}
+//
+//		log.info(
+//				"[PERF_RECOMMEND] userEmail={} totalMs={} scenario=redis_miss_empty",
+//				userEmail,
+//				java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+//		);
+//		return "추천 문제를 준비 중입니다.";
+//	}
+
+
 
 	/**
 	 * home 화면에 출력할 문제 리스트에서 추출
@@ -384,7 +604,7 @@ public class UserService implements UserDetailsService {
 	 */
 	private String getRandomProblem(List<String> problems) {
 		if (problems == null || problems.isEmpty()) {
-			return "추천 문제를 가져올 수 없습니다."; // 문제가 없을 때의 처리
+			return "추천 문제를 가져올 수 없습니다.";  // 문제가 없을 때의 처리
 		}
 		Random random = new Random();
 		return problems.get(random.nextInt(problems.size()));
@@ -409,3 +629,4 @@ public class UserService implements UserDetailsService {
 		}
 	}
 }
+

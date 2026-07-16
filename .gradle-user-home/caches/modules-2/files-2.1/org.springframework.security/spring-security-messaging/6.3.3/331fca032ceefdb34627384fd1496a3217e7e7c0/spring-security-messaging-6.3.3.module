@@ -1,0 +1,188 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "org.springframework.security",
+    "module": "spring-security-messaging",
+    "version": "6.3.3",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.10"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-core",
+          "version": {
+            "requires": "6.3.3"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-beans",
+          "version": {
+            "requires": "6.1.12"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-context",
+          "version": {
+            "requires": "6.1.12"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-core",
+          "version": {
+            "requires": "6.1.12"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-expression",
+          "version": {
+            "requires": "6.1.12"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-messaging",
+          "version": {
+            "requires": "6.1.12"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-security-messaging-6.3.3.jar",
+          "url": "spring-security-messaging-6.3.3.jar",
+          "size": 60943,
+          "sha512": "025527b9e8cdcfc2cb71da4bb49378f90abaf8bb7f5e200877d4b9c093ea079be87ce7f0c6c16e540f790dd1da44e413918b2f395c212f65268dfce8e397ec10",
+          "sha256": "7f46a60562012415020532a5773ef05675a791d1eae61d776bf45ff0b50959ae",
+          "sha1": "b88d86f6ff1881ae56f0644b1466c409c0e7ec8a",
+          "md5": "ddd28cf4c53fddb5919f7525d4c1d58f"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 17,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "org.springframework.security",
+          "module": "spring-security-core",
+          "version": {
+            "requires": "6.3.3"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-beans",
+          "version": {
+            "requires": "6.1.12"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-context",
+          "version": {
+            "requires": "6.1.12"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-core",
+          "version": {
+            "requires": "6.1.12"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-expression",
+          "version": {
+            "requires": "6.1.12"
+          }
+        },
+        {
+          "group": "org.springframework",
+          "module": "spring-messaging",
+          "version": {
+            "requires": "6.1.12"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "spring-security-messaging-6.3.3.jar",
+          "url": "spring-security-messaging-6.3.3.jar",
+          "size": 60943,
+          "sha512": "025527b9e8cdcfc2cb71da4bb49378f90abaf8bb7f5e200877d4b9c093ea079be87ce7f0c6c16e540f790dd1da44e413918b2f395c212f65268dfce8e397ec10",
+          "sha256": "7f46a60562012415020532a5773ef05675a791d1eae61d776bf45ff0b50959ae",
+          "sha1": "b88d86f6ff1881ae56f0644b1466c409c0e7ec8a",
+          "md5": "ddd28cf4c53fddb5919f7525d4c1d58f"
+        }
+      ]
+    },
+    {
+      "name": "javadocElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "javadoc",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-security-messaging-6.3.3-javadoc.jar",
+          "url": "spring-security-messaging-6.3.3-javadoc.jar",
+          "size": 203405,
+          "sha512": "467af479ff6c8870d585cc6a0f55bb159ada770ac01557e249083dcf1b80d71a07be09b842a4b77675d0fc3932380ad531cf281aed1b6e56c99d8c158d101953",
+          "sha256": "bf3d2335e38127360771eac6d1e2d38e3433aa86de16d470a8f02df7102b0de2",
+          "sha1": "729b7e46dcbb014e0ce4acd8b33de99ea035c492",
+          "md5": "5058bd3f73dffb0dd4da355c7279d1b8"
+        }
+      ]
+    },
+    {
+      "name": "sourcesElements",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.usage": "java-runtime"
+      },
+      "files": [
+        {
+          "name": "spring-security-messaging-6.3.3-sources.jar",
+          "url": "spring-security-messaging-6.3.3-sources.jar",
+          "size": 46376,
+          "sha512": "6bc54ef1a0db12420cd22aa847c8fd9863882ec73745dea09920833c28fe155403853ccf489af325587360ca7fc987f61ad6e20078d5ad2dea26f6d07c03a58a",
+          "sha256": "7554ef96f9f9b389b7c1896d5017bb2ab70ae9530a5d6f803aa35b7f88e84334",
+          "sha1": "3072d0f276a7f218e4c5f70d994244615136eab8",
+          "md5": "b6927efbe2886e278abe7e30efac5297"
+        }
+      ]
+    }
+  ]
+}
